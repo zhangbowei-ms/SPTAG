@@ -355,7 +355,7 @@ namespace SPTAG
                 auto t3 = std::chrono::high_resolution_clock::now();
                 LOG(Helper::LogLevel::LL_Info, "BuildGraph time (s): %lld\n", std::chrono::duration_cast<std::chrono::seconds>(t3 - t1).count());
                 if (m_rebuild) {
-                    RebuildGraph<T>(index, 16, idmap);
+                    RebuildGraph<T>(index, 16, 16, idmap);
                     m_iNeighborhoodSize = m_iNeighborhoodSize / 2;
                     auto t4 = std::chrono::high_resolution_clock::now();
                     LOG(Helper::LogLevel::LL_Info, "ReBuildGraph time (s): %lld\n", std::chrono::duration_cast<std::chrono::seconds>(t4 - t3).count());
@@ -363,7 +363,7 @@ namespace SPTAG
             }
 
             template <typename T>
-            void RebuildGraph(VectorIndex* index, int rebuild_num, const std::unordered_map<SizeType, SizeType>* idmap = nullptr)
+            void RebuildGraph(VectorIndex* index, int keep, int rebuild_threshold, const std::unordered_map<SizeType, SizeType>* idmap = nullptr)
             {
                 std::vector<int> indegree(m_iGraphSize + 10, 0);
                 auto t0 = std::chrono::high_resolution_clock::now();
@@ -379,31 +379,87 @@ namespace SPTAG
                         }
                     }
                 }
+                int in_1 = 0, in_4 = 0, in_8 = 0, in_16 = 0;
+                for (SizeType i = 0; i < m_iGraphSize; i++)
+                {
+                    if (indegree[i] == 1) in_1++;
+                    if (indegree[i] < 4) in_4++;
+                    if (indegree[i] < 8) in_8++;
+                    if (indegree[i] < 16) in_16++;
+                }
                 auto t1 = std::chrono::high_resolution_clock::now();
                 LOG(Helper::LogLevel::LL_Info, "Calculate Indegree time (s): %lld\n", std::chrono::duration_cast<std::chrono::seconds>(t1 - t0).count());
+                LOG(Helper::LogLevel::LL_Info, "Before Rebuild Node in degree is 1: %d\n Before Rebuild Node in degree less than 5: %d\n Before Rebuild Node in degree less than 8: %d\n Before Rebuild Node in degree less than 16: %d\n", in_1, in_4, in_8,in_16);
 
 #pragma omp parallel for schedule(dynamic)
                 for (SizeType i = 0; i < m_iGraphSize; i++)
                 {
-                    ReBuildNode<T>(index, indegree, rebuild_num, i, false, false, (int)(m_iCEF * m_fCEFScale));
+                    ReBuildNode<T>(index, indegree, keep, rebuild_threshold, i, false, false, (int)(m_iCEF * m_fCEFScale));
                     if ((i * 5) % m_iGraphSize == 0) LOG(Helper::LogLevel::LL_Info, "Rebuild %d%%\n", static_cast<int>(i * 1.0 / m_iGraphSize * 100));
                 }
                 auto t2 = std::chrono::high_resolution_clock::now();
+                in_1 = 0, in_4 = 0, in_8 = 0, in_16 = 0;
+                for (SizeType i = 0; i < m_iGraphSize; i++) {
+                    indegree[i] = 0;
+                }
+                for (SizeType i = 0; i < m_iGraphSize; i++)
+                {
+                    SizeType* outnodes = m_pNeighborhoodGraph[i];
+                    for (SizeType j = 0; j < m_iNeighborhoodSize / 2; j++)
+                    {
+                        int now_node = outnodes[j];
+                        if (now_node >= 0) {
+                            indegree[now_node]++;
+                        }
+                    }
+                }
+                /*
+                for (SizeType i = 0; i < m_iGraphSize; i++)
+                {
+                    if (indegree[i] == 1) in_1++;
+                    if (indegree[i] < 4) in_4++;
+                    if (indegree[i] < 8) in_8++;
+                    if (indegree[i] < 16) in_16++;
+                }
+                */
+                LOG(Helper::LogLevel::LL_Info, "After Rebuild Node in degree is 1: %d\n After Rebuild Node in degree less than 5: %d\n After Rebuild Node in degree less than 8: %d\n After  Rebuild Node in degree less than 16: %d\n", in_1, in_4, in_8, in_16);
                 LOG(Helper::LogLevel::LL_Info, "Rebuild RNG time (s): %lld Graph Acc: %f\n", std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count(), GraphAccuracyEstimation(index, 100, idmap));
             }
 
             template <typename T>
-            void ReBuildNode(VectorIndex* index, std::vector<int> indegree, int rebuild_num, const SizeType node, bool updateNeighbors, bool searchDeleted, int CEF)
+            void ReBuildNode(VectorIndex* index, std::vector<int> &indegree, int keep, int rebuild_threshold, const SizeType node, bool updateNeighbors, bool searchDeleted, int CEF)
             {
-                std::priority_queue< std::pair<int, int> > RQ;
+                //std::vector<int> LowInNode;
+                //LowInNode.clear();
+                //std::priority_queue< std::pair<int, int> > RQ;
+                //while (!RQ.empty()) RQ.pop();
                 SizeType* outnodes = m_pNeighborhoodGraph[node];
-                int keep = m_iNeighborhoodSize / 2 - rebuild_num;
-                for (SizeType i = keep; i < m_iNeighborhoodSize; i++) {
-                    if (outnodes[i] < 0) continue;
+                //int keep = m_iNeighborhoodSize / 2 - rebuild_num;
+                std::vector<int> LowIn;
+                LowIn.clear();
+                for (SizeType i = m_iNeighborhoodSize / 2; i < m_iNeighborhoodSize; i++) {
                     SizeType now_node = outnodes[i];
-                    RQ.push(std::make_pair(-indegree[now_node], now_node));
-                    outnodes[i] = -1;
+                    if (now_node < 0) continue;
+                    if (indegree[now_node] < rebuild_threshold) {
+                        LowIn.push_back(now_node);
+                    }
+                    //RQ.push(std::make_pair(-indegree[now_node], now_node));
                 }
+                //if (RQ.empty()) return;
+                //std::pair<int, int> tmp = RQ.top();
+                //RQ.pop();
+                int cnt = 0, LowSize = (int)LowIn.size();
+                for (int i = keep; i < m_iNeighborhoodSize / 2; i++) {
+                    SizeType now_node = outnodes[i];
+                    if (indegree[now_node] > rebuild_threshold && cnt < LowSize) {
+                        int temp_node = LowIn[cnt];
+                        outnodes[i] = temp_node;
+                        indegree[now_node] = indegree[now_node] - 1;
+                        indegree[temp_node] = indegree[temp_node] + 1;
+                        cnt++;
+                    }
+                }
+                /*
                 int now = 0;
                 while (now < rebuild_num) {
                     if (RQ.empty()) break;
@@ -412,6 +468,7 @@ namespace SPTAG
                     outnodes[keep + now] = tmp.second;
                     now++;
                 }
+                */
             }
 
             template <typename T>

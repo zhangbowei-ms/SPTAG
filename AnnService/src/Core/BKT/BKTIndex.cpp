@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 #include "inc/Core/BKT/Index.h"
+#include <iostream>
 #include <chrono>
 
 #pragma warning(disable:4242)  // '=' : conversion from 'int' to 'short', possible loss of data
@@ -157,7 +158,9 @@ namespace SPTAG
         m_pTrees.InitSearchTrees(m_pSamples, m_fComputeDistance, p_query, p_space); \
         m_pTrees.SearchTrees(m_pSamples, m_fComputeDistance, p_query, p_space, m_iNumberOfInitialDynamicPivots); \
         const DimensionType checkPos = m_pGraph.m_iNeighborhoodSize - 1; \
+        /*int this_cnt = 0;*/\
         while (!p_space.m_NGQueue.empty()) { \
+            /*this_cnt++;*/\
             NodeDistPair gnode = p_space.m_NGQueue.pop(); \
             SizeType tmpNode = gnode.node; \
             const SizeType *node = m_pGraph[tmpNode]; \
@@ -188,6 +191,7 @@ namespace SPTAG
                 CheckDeleted \
                 { \
                     if (gnode.distance > p_space.m_Results.worst()) { \
+                        /*LOG(Helper::LogLevel::LL_Info, "Quit 2. Node searched: %d\n", p_space.m_iNumberOfCheckedLeaves);*/ \
                         p_query.SortResult(); return; \
                     } \
                 } \
@@ -206,6 +210,7 @@ namespace SPTAG
                 m_pTrees.SearchTrees(m_pSamples, m_fComputeDistance, p_query, p_space, m_iNumberOfOtherDynamicPivots + p_space.m_iNumberOfCheckedLeaves); \
             } \
         } \
+        /*LOG(Helper::LogLevel::LL_Info, "Quit 1. Node searched: %d\n", p_space.m_iNumberOfCheckedLeaves);*/ \
         p_query.SortResult(); \
 
 

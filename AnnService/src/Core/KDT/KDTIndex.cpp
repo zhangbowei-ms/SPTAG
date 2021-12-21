@@ -101,7 +101,9 @@ namespace SPTAG
         std::shared_lock<std::shared_timed_mutex> lock(*(m_pTrees.m_lock)); \
         m_pTrees.InitSearchTrees(m_pSamples, m_fComputeDistance, p_query, p_space); \
         m_pTrees.SearchTrees(m_pSamples, m_fComputeDistance, p_query, p_space, m_iNumberOfInitialDynamicPivots); \
+        int this_cnt = 0;\
         while (!p_space.m_NGQueue.empty()) { \
+            this_cnt++;\
             NodeDistPair gnode = p_space.m_NGQueue.pop(); \
             const SizeType *node = m_pGraph[gnode.node]; \
             _mm_prefetch((const char *)node, _MM_HINT_T0); \
@@ -133,6 +135,7 @@ namespace SPTAG
                 } \
             } \
         } \
+        LOG(Helper::LogLevel::LL_Info, "Node searched: %d\n", this_cnt);\
         p_query.SortResult(); \
 
         template <typename T>
