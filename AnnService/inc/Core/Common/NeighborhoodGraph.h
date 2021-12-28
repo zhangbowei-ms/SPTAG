@@ -29,28 +29,28 @@ namespace SPTAG
 {
     namespace COMMON
     {
-        class NeighborhoodGraph 
+        class NeighborhoodGraph
         {
         public:
-            NeighborhoodGraph(): m_iTPTNumber(32), 
-                                 m_iTPTLeafSize(2000), 
-                                 m_iSamples(1000), 
-                                 m_numTopDimensionTPTSplit(5),
-                                 m_iNeighborhoodSize(32),
-                                 m_fNeighborhoodScale(2.0),
-                                 m_fCEFScale(2.0),
-                                 m_fRNGFactor(1.0),
-                                 m_iRefineIter(2),
-                                 m_iCEF(1000),
-                                 m_iAddCEF(500),
-                                 m_iMaxCheckForRefineGraph(10000),
-                                 m_iGPUGraphType(2),
-                                 m_iGPURefineSteps(0),
-                                 m_iGPURefineDepth(2),
-                                 m_iGPULeafSize(500),
-                                 m_iheadNumGPUs(1),
-                                 m_iTPTBalanceFactor(2),
-                                 m_rebuild(0)
+            NeighborhoodGraph() : m_iTPTNumber(32),
+                m_iTPTLeafSize(2000),
+                m_iSamples(1000),
+                m_numTopDimensionTPTSplit(5),
+                m_iNeighborhoodSize(32),
+                m_fNeighborhoodScale(2.0),
+                m_fCEFScale(2.0),
+                m_fRNGFactor(1.0),
+                m_iRefineIter(2),
+                m_iCEF(1000),
+                m_iAddCEF(500),
+                m_iMaxCheckForRefineGraph(10000),
+                m_iGPUGraphType(2),
+                m_iGPURefineSteps(0),
+                m_iGPURefineDepth(2),
+                m_iGPULeafSize(500),
+                m_iheadNumGPUs(1),
+                m_iTPTBalanceFactor(2),
+                m_rebuild(0)
             {}
 
             ~NeighborhoodGraph() {}
@@ -76,7 +76,7 @@ namespace SPTAG
                         query.AddPoint(y, dist);
                     }
                     query.SortResult();
-                    SizeType * exact_rng = new SizeType[m_iNeighborhoodSize];
+                    SizeType* exact_rng = new SizeType[m_iNeighborhoodSize];
                     RebuildNeighbors(index, x, exact_rng, query.GetResults(), m_iCEF);
 
                     correct[i] = 0;
@@ -107,7 +107,7 @@ namespace SPTAG
                 SizeType initSize;
                 SPTAG::Helper::Convert::ConvertStringTo(index->GetParameter("NumberOfInitialDynamicPivots").c_str(), initSize);
 
-              // Build the entire RNG graph, both builds the KNN and refines it to RNG
+                // Build the entire RNG graph, both builds the KNN and refines it to RNG
                 buildGraph<T>(index, m_iGraphSize, m_iNeighborhoodSize, m_iTPTNumber, (int*)m_pNeighborhoodGraph[0], m_iGPURefineSteps, m_iGPURefineDepth, m_iGPUGraphType, m_iGPULeafSize, initSize, m_iheadNumGPUs, m_iTPTBalanceFactor);
 
                 if (idmap != nullptr) {
@@ -123,7 +123,7 @@ namespace SPTAG
 #else
             template <typename T>
             void PartitionByTptree(VectorIndex* index, std::vector<SizeType>& indices, const SizeType first, const SizeType last,
-                std::vector<std::pair<SizeType, SizeType>> & leaves)
+                std::vector<std::pair<SizeType, SizeType>>& leaves)
             {
                 if (last - first <= m_iTPTLeafSize)
                 {
@@ -162,7 +162,7 @@ namespace SPTAG
                         for (DimensionType k = 0; k < index->GetFeatureDim(); k++)
                         {
                             float dist = v[k] - Mean[k];
-                            Variance[k].Dist += dist*dist;
+                            Variance[k].Dist += dist * dist;
                         }
                     }
                     std::sort(Variance.begin(), Variance.end(), COMMON::Compare);
@@ -389,7 +389,7 @@ namespace SPTAG
                 }
                 auto t1 = std::chrono::high_resolution_clock::now();
                 LOG(Helper::LogLevel::LL_Info, "Calculate Indegree time (s): %lld\n", std::chrono::duration_cast<std::chrono::seconds>(t1 - t0).count());
-                LOG(Helper::LogLevel::LL_Info, "Before Rebuild Node in degree is 1: %d\n Before Rebuild Node in degree less than 5: %d\n Before Rebuild Node in degree less than 8: %d\n Before Rebuild Node in degree less than 16: %d\n", in_1, in_4, in_8,in_16);
+                LOG(Helper::LogLevel::LL_Info, "Before Rebuild Node in degree is 1: %d\n Before Rebuild Node in degree less than 5: %d\n Before Rebuild Node in degree less than 8: %d\n Before Rebuild Node in degree less than 16: %d\n", in_1, in_4, in_8, in_16);
 
 #pragma omp parallel for schedule(dynamic)
                 for (SizeType i = 0; i < m_iGraphSize; i++)
@@ -427,7 +427,7 @@ namespace SPTAG
             }
 
             template <typename T>
-            void ReBuildNode(VectorIndex* index, std::vector<int> &indegree, int keep, int rebuild_threshold, const SizeType node, bool updateNeighbors, bool searchDeleted, int CEF)
+            void ReBuildNode(VectorIndex* index, std::vector<int>& indegree, int keep, int rebuild_threshold, const SizeType node, bool updateNeighbors, bool searchDeleted, int CEF)
             {
                 //std::vector<int> LowInNode;
                 //LowInNode.clear();
@@ -589,7 +589,7 @@ namespace SPTAG
                 m_iNeighborhoodSize = m_pNeighborhoodGraph.C();
                 return ret;
             }
-            
+
             ErrorCode LoadGraph(char* pGraphMemFile, SizeType blockSize, SizeType capacity)
             {
                 ErrorCode ret = ErrorCode::Success;
@@ -599,7 +599,7 @@ namespace SPTAG
                 m_iNeighborhoodSize = m_pNeighborhoodGraph.C();
                 return ErrorCode::Success;
             }
-            
+
             ErrorCode SaveGraph(std::string sGraphFilename) const
             {
                 LOG(Helper::LogLevel::LL_Info, "Save %s To %s\n", m_pNeighborhoodGraph.Name().c_str(), sGraphFilename.c_str());
@@ -620,7 +620,7 @@ namespace SPTAG
             }
 
             inline ErrorCode AddBatch(SizeType num)
-            { 
+            {
                 ErrorCode ret = m_pNeighborhoodGraph.AddBatch(num);
                 if (ret != ErrorCode::Success) return ret;
 
@@ -637,8 +637,8 @@ namespace SPTAG
                 m_pNeighborhoodGraph[row][col] = val;
             }
 
-            inline void SetR(SizeType rows) { 
-                m_pNeighborhoodGraph.SetR(rows); 
+            inline void SetR(SizeType rows) {
+                m_pNeighborhoodGraph.SetR(rows);
                 m_iGraphSize = rows;
             }
 
