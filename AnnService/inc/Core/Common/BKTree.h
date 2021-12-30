@@ -585,8 +585,8 @@ namespace SPTAG
 
                         int BFS_level = 1;
                         std::vector<float> FactorQ;
+                        FactorQ.push_back(1.2);
                         FactorQ.push_back(1.1);
-                        FactorQ.push_back(1.05);
                         p_space.m_BSPTQueue[0].Resize(40);
                         p_space.m_BSPTQueue[0].clear();
                         p_space.m_BSPTQueue[1].Resize(100);
@@ -596,15 +596,20 @@ namespace SPTAG
                         //p_space.m_BSPTQueue[3].Resize(100000);
                         //p_space.m_BSPTQueue[3].clear();
                         float now_min = 1e9;
+                        int now_size = 0;
                         for (SizeType begin = node.childStart; begin < node.childEnd; begin++) {
                             //node_bfschecked++;
                             //std::cout << begin << std::endl;
                             SizeType index = m_pTreeRoots[begin].centerid;
                             float now_dis = fComputeDistance(p_query.GetTarget(), data[index], data.C());
-                            if (now_dis < now_min * FactorQ[0]) {
+                            if (now_dis < now_min * FactorQ[0] && now_size < 100) {
                                 if (now_dis < now_min) now_min = now_dis;
+                                now_size++;
                                 p_space.m_BSPTQueue[0].insert(NodeDistPair(begin, now_dis));
                                 //p_space.m_SPTQueue.insert(NodeDistPair(begin, now_dis));
+                            }
+                            else {
+                                p_space.m_BSPTQueue[0].insert(NodeDistPair(begin, now_dis));
                             }
                         }
                         //LOG(Helper::LogLevel::LL_Info, "Queue 0 size is %d\n", (int)p_space.m_BSPTQueue[0].size());
@@ -626,6 +631,9 @@ namespace SPTAG
                                         if (now_dis < now_min) now_min = now_dis;
                                         p_space.m_BSPTQueue[i].insert(NodeDistPair(now, now_dis));
                                         //p_space.m_SPTQueue.insert(NodeDistPair(now, now_dis));
+                                    }
+                                    else {
+                                        p_space.m_SPTQueue.insert(NodeDistPair(now, now_dis));
                                     }
                                 }
                             }
